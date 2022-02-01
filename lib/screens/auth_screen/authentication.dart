@@ -1,22 +1,22 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import '/constants/style.dart';
-import '/routing/routes.dart';
-import '/models/http_exception.dart';
-import '/controllers/auth_controller.dart';
-import '/widgets/custom_text.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '/controllers/auth_controller.dart';
+import '/models/http_exception.dart';
 
 // BuildContext? context;
 
 class AuthenticationScreen extends StatelessWidget {
-  const AuthenticationScreen({Key? key}) : super(key: key);
+  final AuthController authController = Get.put(AuthController());
+
+  AuthenticationScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     final deviceSize = MediaQuery.of(context).size;
-        print('This means it\'s not authenticated and we are in Auth screen');
+    print('This means it\'s not authenticated and we are in Auth screen');
     //print(AuthController.instance.isAuth);
     return Scaffold(
       // resizeToAvoidBottomInset: false,
@@ -89,10 +89,9 @@ class AuthenticationScreen extends StatelessWidget {
   }
 }
 
-class AuthCard extends StatelessWidget  {
+class AuthCard extends StatelessWidget {
+  final AuthController controller = Get.find();
   AuthCard({Key? key}) : super(key: key);
-  static AuthCard instance = Get.find();
-  final GlobalKey<FormState> _formKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -104,33 +103,10 @@ class AuthCard extends StatelessWidget  {
       'email': '',
       'password': '',
     };
-    final _passwordController = TextEditingController();
     AnimationController? _controller = AuthController.instance.controller;
     Animation<Offset>? _slideAnimation = AuthController.instance.slideAnimation;
-    Animation<double>? _opacityAnimation = AuthController.instance.opacityAnimation;
-
-    //     _controller = AnimationController (
-    //   vsync: this,
-    //   duration: const Duration(
-    //     milliseconds: 300,
-    //   ),
-    // );
-    // _slideAnimation = Tween<Offset>(
-    //   begin: const Offset(0, -1.5),
-    //   end: const Offset(0, 0),
-    // ).animate(
-    //   CurvedAnimation(
-    //     parent: _controller as Animation<double>,
-    //     curve: Curves.fastOutSlowIn,
-    //   ),
-    // );
-    // _opacityAnimation = Tween(begin: 0.0, end: 1.0).animate(
-    //   CurvedAnimation(
-    //     parent: _controller as Animation<double>,
-    //     curve: Curves.easeIn,
-    //   ),
-    // );
-    // // _heightAnimation.addListener(() => setState(() {}));
+    Animation<double>? _opacityAnimation =
+        AuthController.instance.opacityAnimation;
 
     void _switchAuthMode() {
       if (_authMode!.value == AuthMode.Login) {
@@ -152,7 +128,7 @@ class AuthCard extends StatelessWidget  {
             TextButton(
               child: const Text('Okay'),
               onPressed: () {
-                Navigator.of(ctx).pop();
+                Get.back();
               },
             )
           ],
@@ -161,29 +137,24 @@ class AuthCard extends StatelessWidget  {
     }
 
     Future<void> _submit() async {
-      if (!_formKey.currentState!.validate()) {
-                print('this is current state');
-
-        print(_formKey.currentState);
-        // Invalid!
-        // print("app crashed!");
+      if (!controller.key.currentState!.validate()) {
         return;
       }
       // print('app is here!!!');
-      _formKey.currentState!.save();
+      controller.key.currentState!.save();
       _isLoading!.value = true;
 
       try {
         if (_authMode!.value == AuthMode.Login) {
           // Log user in
-                // print('app is here!!!222');
+          // print('app is here!!!222');
 
           await AuthController.instance.login(
             _authData['email'] as String,
             _authData['password'] as String,
           );
         } else {
-                // print('app is here!!!333333');
+          // print('app is here!!!333333');
 
           // Sign user up
           await AuthController.instance.signup(
@@ -192,7 +163,7 @@ class AuthCard extends StatelessWidget  {
           );
         }
       } on HttpException catch (error) {
-              // print('app is here!!!44444');
+        // print('app is here!!!44444');
 
         var errorMessage = 'Authentication failed';
 
@@ -214,8 +185,7 @@ class AuthCard extends StatelessWidget  {
                 error.toString();
         _showErrorDialog(errorMessage);
       }
-        _isLoading.value = false;
-
+      _isLoading.value = false;
     }
 
     return Card(
@@ -233,7 +203,7 @@ class AuthCard extends StatelessWidget  {
         width: deviceSize.width * 0.75,
         padding: const EdgeInsets.all(16.0),
         child: Obx(() => Form(
-              key: _formKey,
+              key: controller.key,
               child: SingleChildScrollView(
                 child: Column(
                   children: <Widget>[
@@ -252,7 +222,7 @@ class AuthCard extends StatelessWidget  {
                     TextFormField(
                       decoration: const InputDecoration(labelText: 'Password'),
                       obscureText: true,
-                      controller: _passwordController,
+                      controller: controller.passwordController,
                       validator: (value) {
                         if (value!.isEmpty || value.length < 5) {
                           return 'Password is too short!';
@@ -280,7 +250,8 @@ class AuthCard extends StatelessWidget  {
                             obscureText: true,
                             validator: _authMode.value == AuthMode.Signup
                                 ? (value) {
-                                    if (value != _passwordController.text) {
+                                    if (value !=
+                                        controller.passwordController.text) {
                                       return 'Passwords do not match!';
                                     }
                                   }
@@ -296,35 +267,33 @@ class AuthCard extends StatelessWidget  {
                       const CircularProgressIndicator()
                     else
                       ElevatedButton(
-                            child:  Text(_authMode.value == AuthMode.Login
-                                ? 'LOGIN'
-                                : 'SIGN UP'),
-                            onPressed: _submit,
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              primary: Theme.of(context).primaryColor,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 30.0, vertical: 8.0),
-                              onPrimary: Theme.of(context)
-                                  .primaryTextTheme
-                                  .button!
-                                  .color,
-                            ),
+                        child: Text(_authMode.value == AuthMode.Login
+                            ? 'LOGIN'
+                            : 'SIGN UP'),
+                        onPressed: _submit,
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                     TextButton(
-                          child: Text(
-                              '${_authMode.value == AuthMode.Login ? 'SIGNUP' : 'LOGIN'} '),
-                          onPressed: _switchAuthMode,
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 30.0, vertical: 4),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            textStyle: TextStyle(
-                                color: Theme.of(context).primaryColor),
-                          ),
+                          primary: Theme.of(context).primaryColor,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30.0, vertical: 8.0),
+                          onPrimary:
+                              Theme.of(context).primaryTextTheme.button!.color,
                         ),
+                      ),
+                    TextButton(
+                      child: Text(
+                          '${_authMode.value == AuthMode.Login ? 'SIGNUP' : 'LOGIN'} '),
+                      onPressed: _switchAuthMode,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30.0, vertical: 4),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle:
+                            TextStyle(color: Theme.of(context).primaryColor),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -334,138 +303,134 @@ class AuthCard extends StatelessWidget  {
   }
 }
 
-
-
-
-
-    // return Scaffold(
-    //   body: Center(
-    //     child: Container(
-    //       constraints: const BoxConstraints(maxWidth: 400),
-    //       padding: const EdgeInsets.all(24),
-    //       child: Column(
-    //         mainAxisAlignment: MainAxisAlignment.center,
-    //         children: [
-    //           Row(
-    //             children: [
-    //               Padding(
-    //                 padding: const EdgeInsets.only(right: 12),
-    //                 child: Image.asset("icons/logo.png"),
-    //               ),
-    //               Expanded(child: Container()),
-    //             ],
-    //           ),
-    //           const SizedBox(
-    //             height: 30,
-    //           ),
-    //           Row(
-    //             children: [
-    //               Text("Login",
-    //                   style: GoogleFonts.roboto(
-    //                       fontSize: 30, fontWeight: FontWeight.bold)),
-    //             ],
-    //           ),
-    //           const SizedBox(
-    //             height: 10,
-    //           ),
-    //           Row(
-    //             children: [
-    //               CustomText(
-    //                 text: "Welcome.",
-    //                 color: lightGrey,
-    //                 size: 10,
-    //                 weight: FontWeight.w300,
-    //               ),
-    //             ],
-    //           ),
-    //           const SizedBox(
-    //             height: 15,
-    //           ),
-    //           TextField(
-    //             decoration: InputDecoration(
-    //                 labelText: "Email",
-    //                 hintText: "abc@domain.com",
-    //                 border: OutlineInputBorder(
-    //                     borderRadius: BorderRadius.circular(20))),
-    //           ),
-    //           SizedBox(
-    //             height: 15,
-    //           ),
-    //           TextField(
-    //             obscureText: true,
-    //             decoration: InputDecoration(
-    //                 labelText: "Password",
-    //                 hintText: "123",
-    //                 border: OutlineInputBorder(
-    //                     borderRadius: BorderRadius.circular(20))),
-    //           ),
-    //           SizedBox(
-    //             height: 15,
-    //           ),
-    //           Row(
-    //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //             children: [
-    //               Row(
-    //                 children: [
-    //                   Checkbox(value: true, onChanged: (value) {}),
-    //                   CustomText(
-    //                     text: "Remeber Me",
-    //                     weight: FontWeight.bold,
-    //                     size: 10,
-    //                     color: dark,
-    //                   ),
-    //                 ],
-    //               ),
-    //               CustomText(
-    //                 text: "Forgot password?",
-    //                 color: active,
-    //                 size: 10,
-    //                 weight: FontWeight.bold,
-    //               )
-    //             ],
-    //           ),
-    //           const SizedBox(
-    //             height: 15,
-    //           ),
-    //           Obx(
-    //             () => ElevatedButton(
-    //                 child: Text(_authMode.value == AuthMode.Login
-    //                     ? 'LOGIN'
-    //                     : 'SIGN UP'),
-    //                 onPressed: _submit,
-    //                 style: ElevatedButton.styleFrom(
-    //                   shape: RoundedRectangleBorder(
-    //                     borderRadius: BorderRadius.circular(30),
-    //                   ),
-    //                   primary: Theme.of(context).primaryColor,
-    //                   padding: const EdgeInsets.symmetric(
-    //                       horizontal: 30.0, vertical: 8.0),
-    //                   onPrimary:
-    //                       Theme.of(context).primaryTextTheme.button!.color,
-    //                 )),
-    //           ),
-    //           Obx(() => TextButton(
-    //               child: Text(
-    //                   '${_authMode.value == AuthMode.Login ? 'SIGN UP' : 'LOGIN'} '),
-    //               onPressed: _switchAuthMode,
-    //               style: TextButton.styleFrom(
-    //                 padding: const EdgeInsets.symmetric(
-    //                     horizontal: 30.0, vertical: 4),
-    //                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    //                 textStyle: TextStyle(color: Theme.of(context).primaryColor),
-    //               ))),
-    //           const SizedBox(
-    //             height: 15,
-    //           ),
-    //           RichText(
-    //               text: TextSpan(children: [
-    //             const TextSpan(text: "Do not have admin credentials? "),
-    //             TextSpan(
-    //                 text: "Request Credentials! ",
-    //                 style: TextStyle(color: active))
-    //           ]))
-    //         ],
-    //       ),
-    //     ),
-    //   ),
-    // );
+// return Scaffold(
+//   body: Center(
+//     child: Container(
+//       constraints: const BoxConstraints(maxWidth: 400),
+//       padding: const EdgeInsets.all(24),
+//       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.center,
+//         children: [
+//           Row(
+//             children: [
+//               Padding(
+//                 padding: const EdgeInsets.only(right: 12),
+//                 child: Image.asset("icons/logo.png"),
+//               ),
+//               Expanded(child: Container()),
+//             ],
+//           ),
+//           const SizedBox(
+//             height: 30,
+//           ),
+//           Row(
+//             children: [
+//               Text("Login",
+//                   style: GoogleFonts.roboto(
+//                       fontSize: 30, fontWeight: FontWeight.bold)),
+//             ],
+//           ),
+//           const SizedBox(
+//             height: 10,
+//           ),
+//           Row(
+//             children: [
+//               CustomText(
+//                 text: "Welcome.",
+//                 color: lightGrey,
+//                 size: 10,
+//                 weight: FontWeight.w300,
+//               ),
+//             ],
+//           ),
+//           const SizedBox(
+//             height: 15,
+//           ),
+//           TextField(
+//             decoration: InputDecoration(
+//                 labelText: "Email",
+//                 hintText: "abc@domain.com",
+//                 border: OutlineInputBorder(
+//                     borderRadius: BorderRadius.circular(20))),
+//           ),
+//           SizedBox(
+//             height: 15,
+//           ),
+//           TextField(
+//             obscureText: true,
+//             decoration: InputDecoration(
+//                 labelText: "Password",
+//                 hintText: "123",
+//                 border: OutlineInputBorder(
+//                     borderRadius: BorderRadius.circular(20))),
+//           ),
+//           SizedBox(
+//             height: 15,
+//           ),
+//           Row(
+//             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//             children: [
+//               Row(
+//                 children: [
+//                   Checkbox(value: true, onChanged: (value) {}),
+//                   CustomText(
+//                     text: "Remeber Me",
+//                     weight: FontWeight.bold,
+//                     size: 10,
+//                     color: dark,
+//                   ),
+//                 ],
+//               ),
+//               CustomText(
+//                 text: "Forgot password?",
+//                 color: active,
+//                 size: 10,
+//                 weight: FontWeight.bold,
+//               )
+//             ],
+//           ),
+//           const SizedBox(
+//             height: 15,
+//           ),
+//           Obx(
+//             () => ElevatedButton(
+//                 child: Text(_authMode.value == AuthMode.Login
+//                     ? 'LOGIN'
+//                     : 'SIGN UP'),
+//                 onPressed: _submit,
+//                 style: ElevatedButton.styleFrom(
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(30),
+//                   ),
+//                   primary: Theme.of(context).primaryColor,
+//                   padding: const EdgeInsets.symmetric(
+//                       horizontal: 30.0, vertical: 8.0),
+//                   onPrimary:
+//                       Theme.of(context).primaryTextTheme.button!.color,
+//                 )),
+//           ),
+//           Obx(() => TextButton(
+//               child: Text(
+//                   '${_authMode.value == AuthMode.Login ? 'SIGN UP' : 'LOGIN'} '),
+//               onPressed: _switchAuthMode,
+//               style: TextButton.styleFrom(
+//                 padding: const EdgeInsets.symmetric(
+//                     horizontal: 30.0, vertical: 4),
+//                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+//                 textStyle: TextStyle(color: Theme.of(context).primaryColor),
+//               ))),
+//           const SizedBox(
+//             height: 15,
+//           ),
+//           RichText(
+//               text: TextSpan(children: [
+//             const TextSpan(text: "Do not have admin credentials? "),
+//             TextSpan(
+//                 text: "Request Credentials! ",
+//                 style: TextStyle(color: active))
+//           ]))
+//         ],
+//       ),
+//     ),
+//   ),
+// );

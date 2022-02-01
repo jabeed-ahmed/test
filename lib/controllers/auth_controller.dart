@@ -1,36 +1,37 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
-
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 // import 'dart:io' show Platform;
 import 'package:universal_platform/universal_platform.dart';
 
-
-import 'package:flutter/widgets.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/http_exception.dart';
 
 enum AuthMode { Signup, Login }
 
-class AuthController extends GetxController with GetSingleTickerProviderStateMixin  {
+class AuthController extends GetxController
+    with GetSingleTickerProviderStateMixin {
   static AuthController instance = Get.find();
   Rx<dynamic>? authMode = AuthMode.Login.obs;
   RxBool? isLoading = false.obs;
-  String? _token; 
+  String? _token;
   DateTime? _expiryDate;
   String? _userId;
   Timer? _authTimer;
-final _isAuth = false.obs;
-
+  final _isAuth = false.obs;
 
   AnimationController? controller;
   Animation<Offset>? slideAnimation;
   Animation<double>? opacityAnimation;
+  late TextEditingController passwordController;
+  final key = GlobalKey<FormState>();
 
-    @override
+  @override
   void onInit() {
     super.onInit();
     controller = AnimationController(
@@ -55,6 +56,14 @@ final _isAuth = false.obs;
       ),
     );
     // _heightAnimation.addListener(() => setState(() {}));
+
+    passwordController = TextEditingController();
+  }
+
+  @override
+  void onClose() {
+    super.onClose();
+    passwordController.dispose();
   }
 
   //  bool get isAuth{
@@ -64,11 +73,10 @@ final _isAuth = false.obs;
 //    return RxBool(token != null);
 //  }
 
-
-bool get isAuth {
- _isAuth.value= token != null;
- return _isAuth.value;
-}
+  bool get isAuth {
+    _isAuth.value = token != null;
+    return _isAuth.value;
+  }
 
   String? get token {
     if (_expiryDate != null &&
@@ -85,7 +93,7 @@ bool get isAuth {
 
   Future<void> _authenticate(
       String email, String password, String urlSegment) async {
-              // print('app is here!!!5555');
+    // print('app is here!!!5555');
 
     final host = UniversalPlatform.isAndroid ? '10.0.2.2' : '127.0.0.1';
     final url = Uri.parse('http://$host:8000/api/$urlSegment');
@@ -109,19 +117,19 @@ bool get isAuth {
       // print(response);
 
       final responseData = json.decode(response.body);
-            //  print(responseData);
+      //  print(responseData);
 
       if (responseData['error'] != null) {
         throw HttpException(responseData['error']['message']);
       } else {
-      _token = responseData['idToken'];
-      _userId = responseData['id'];
-      _expiryDate = DateTime.now().add(
-        Duration(
-          seconds: responseData['expiresIn'],
-        ),
-      );
-    }
+        _token = responseData['idToken'];
+        _userId = responseData['id'];
+        _expiryDate = DateTime.now().add(
+          Duration(
+            seconds: responseData['expiresIn'],
+          ),
+        );
+      }
       _autoLogout();
       // update();
       final prefs = await SharedPreferences.getInstance();

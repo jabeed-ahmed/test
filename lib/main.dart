@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
                 }),
             GetPage(
                 name: authenticationScreenRoute,
-                page: () => const AuthenticationScreen()),
+                page: () => AuthenticationScreen()),
             GetPage(name: homeScreenRoute, page: () => const HomeScreen()),
           ],
           debugShowCheckedModeBanner: false,
@@ -59,9 +59,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-
 ///
-
 
 // class AuthMiddlware extends GetMiddleware {
 //   @override
@@ -86,6 +84,3 @@ class MyApp extends StatelessWidget {
 //     );
 //   }
 // }
-
-
-
